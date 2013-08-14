@@ -1,6 +1,44 @@
 <?php
 require('./PasswordHash.php');
-include('./papaSmurf.conf.php');
+include('./smurfberries.conf');
+
+function start_db()
+{
+  global $db_host, $db_std_user, $db_std_pass, $db_name, $db_port, $debug;
+
+  try
+  {
+    $dbh = new PDO("mysql:host=$db_host;dbname=$db_name", $db_std_user, $db_std_pass);
+    if ($debug)
+      echo "connected to database";
+    return $dbh;
+
+  }
+  catch(PDOException $e)
+  {
+    if ($debug)
+      $e->getMessage();
+  }
+}
+
+
+/*
+ * this is not required it will close at the end of the php script
+function stop_db($db)
+{
+  try
+  {
+    $db = null;
+  }
+  catch(PDOException $e)
+  {
+    if ($debug)
+      $e->getMessage();
+  }
+
+}
+ */
+
 function fail($pub, $pvt = '')
 {
   global $debug;
@@ -45,37 +83,16 @@ function start_session($session_name, $secure)
   session_regenerate_id(true);
 }
 
-function close_session($sid)
+function close_session($sid, $db)
 {
-  global $db_host, $db_std_user, $db_std_pass, $db_name, $db_port;
-
-  $db= new mysqli($db_host, $db_std_user, $db_std_pass, $db_name, $db_port);
-  if (mysqli_connect_errno())
-    fail('MySQL connect', mysqli_connect_error());
-
   ($stmt = $db->prepare('DELETE FROM session WHERE sid = ?')) || fail('MySQL prepare', $db->error);
-  $stmt->bind_param('s', $sid);
+  $stmt->bindParam(1,$sid,PDO::PARAM_STR);
   $stmt->execute();
   session_destroy();
-  $stmt->close();
-  $db->close();
 }
 
-/* this function is just in case magic quotes is enabled on our server
- * as it would screw with our users logins and/or passwords
- */
-function get_post_var($var)
+function login_check($db)
 {
-  $val = $_POST[$var];
-  if (get_magic_quotes_gpc())
-    $val = stripslashes($val);
-  return $val;
-}
-
-function login_check()
-{
-  global $db_host, $db_std_user, $db_std_pass, $db_name, $db_port;
-
   //quick check for valid logged_in flag
   if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] == false)
   return false;
@@ -89,86 +106,64 @@ function login_check()
   $userAgent = md5($_SERVER['HTTP_USER_AGENT']);
 
   //db data
-  $db= new mysqli($db_host, $db_std_user, $db_std_pass, $db_name, $db_port);
-  if (mysqli_connect_errno())
-    fail('MySQL connect', mysqli_connect_error());
-
   $stmt = $db->prepare('SELECT sid, ip, userAgent FROM session WHERE user_id = ?');
-  $stmt->bind_param('s', $user_id);
+  $stmt->bindParam(1, $user_id, PDO::PARAM_STR);
   $stmt->execute();
-  $stmt->bind_result($db_sid, $db_ip, $db_userAgent);
   //we allow more than one session per user so we need to loop through the resu$
-  while($stmt->fetch())
+  while($row = $stmt->fetch(PDO::FETCH_ASSOC))
   {
-    if($user_sid == $db_sid)
+    if($user_sid == $row['sid'])
     {
-      if ($user_ip == $db_ip)
+      if ($user_ip == $row['ip'])
       {
-        if ($userAgent == $db_userAgent)
-        {
-          $stmt->close();
-          $db->close();
+        if ($userAgent == $row['userAgent'])
           return true;
-        }
       }
     }
   }
-  $stmt->close();
-  $db->close();
   return false;
 }
 
-function admin_check()
+function admin_check($db)
 {
-  global $db_host, $db_std_user, $db_std_pass, $db_name, $db_port;
-  $user_id = $_SESSION['user_id'];
-
-  $db= new mysqli($db_host, $db_std_user, $db_std_pass, $db_name, $db_port);
-  if (mysqli_connect_errno())
-    fail('MySQL connect', mysqli_connect_error());
   ($stmt = $db->prepare('SELECT isadmin FROM user WHERE id = ?')) || fail('MySQL prepare', $db->error);
-  $stmt->bind_param('s', $user_id) || fail('MySQL bind_param', $db->error);
+  $stmt->bindParam(1, $user_id, PDO::PARAM_STR) || fail('MySQL bindParam', $db->error);
   $stmt->execute() || fail('MySQL execute', $db->error);
-  $stmt->bind_result($isadmin);
-  $stmt->close();
-  $db->close();
+  $isadmin = $stmt->fetch(PDO::FETCH_ASSOC);
 
-  if (isadmin == true)
+
+  if ($isadmin == true)
     return true;
   else
     return false;
 }
 
-function login($user, $pass)
+function login($user, $pass, $db)
 {
-  global $db_host, $db_std_user, $db_std_pass, $db_name, $db_port, $hash_cost_log2, $hash_portable, $maxLoginAttempts;
+  global $hash_cost_log2, $hash_portable, $maxLoginAttempts;
 
   $hasher = new PasswordHash($hash_cost_log2, $hash_portable);
   $hash = '*';
-  $db= new mysqli($db_host, $db_std_user, $db_std_pass, $db_name, $db_port);
-  if (mysqli_connect_errno())
-    fail('MySQL connect', mysqli_connect_error());
-  ($stmt = $db->prepare('SELECT id, pass FROM user WHERE name = ?')) || fail('MySQL prepare', $db->error);
-  $stmt->bind_param('s', $user) || fail('MySQL bind_param', $db->error);
+  $stmt = $db->prepare('SELECT id, pass FROM user WHERE name = ?');
+  $stmt->bindParam(1,$user, PDO::PARAM_STR) || fail('MySQL bindParam', $db->error);
   $stmt->execute() || fail('MySQL execute', $db->error);
-  $stmt->bind_result($user_id, $hash) || fail('MySQL bind_result', $db->error);
-  if (!$stmt->fetch() && $db->errno)
-    fail('MySQL fetch', $db->error);
-  $stmt->close();
+  $row= $stmt->fetch(PDO::FETCH_ASSOC);
+  $user_id = $row['id'];
+  $hash = $row['pass'];
+
   //check for brute force attempt
   $now = time();
   $past = $now - 7200; //2 hours ago
   ($stmt= $db->prepare('SELECT COUNT(time) AS numAttempts FROM loginAttempt WHERE user_id = ? AND time > ?')) || fail('MySQL prepare', $db->error);
-  $stmt->bind_param('is',$user_id, $past);
+  $stmt->bindParam(1, $user_id, PDO::PARAM_INT);
+  $stmt->bindParam(2, $past, PDO::PARAM_STR);
   $stmt->execute();
-  $stmt->bind_result($numAttempts) ||fail('MySQL bind_result', $db->error);
-  if (!$stmt->fetch() && $db->errno)
-    fail('MySQL fetch', $db->error);
+  $row = $stmt->fetch(PDO::FETCH_ASSOC);
+  $numAttempts= $row['numAttempts'];
 
   if ($numAttempts >= $maxLoginAttempts)
     fail('too many failed logins');
 
-  $stmt->close();
   //check login credentials
   if ($hasher->checkPassword($pass, $hash))
   {
@@ -178,10 +173,12 @@ function login($user, $pass)
     $ip = $_SERVER['REMOTE_ADDR'];
     //store details in database so they can be validated later.
     ($stmt = $db->prepare('INSERT INTO session (sid, user_id, userAgent, ip) VALUES (?,?,?,?)')) || fail ('MySQL prepare', $db->error);
-    $stmt->bind_param('siss',$sid, $user_id, $user_agent_hash, $ip) || fail('MySQL bind_param', $db->error);
+    $stmt->bindParam(1, $sid, PDO::PARAM_STR);
+    $stmt->bindParam(2, $user_id, PDO::PARAM_INT);
+    $stmt->bindParam(3, $user_agent_hash, PDO::PARAM_STR);
+    $stmt->bindParam(4, $ip, PDO::PARAM_STR);
     $stmt->execute() || fail('MySQL execute', $db->error);
-    $stmt->close();
-    $db->close();
+
 
     //set session vars
     $_SESSION['logged_in'] = true;
@@ -194,23 +191,31 @@ function login($user, $pass)
   {
   //INCORRECT Password log attempt in database
   ($stmt = $db->prepare('INSERT INTO loginAttempt (user_id,time) VALUES (?,?)')) || fail ('MySQL prepare', $db->error);
-  $stmt->bind_param('is', $user_id, $now) || fail('MySQL bind_param', $db->error);
+  $stmt->bindParam(1, $user_id, PDO::PARAM_INT);
+  $stmt->bindParam(2, $now, PDO::PARAM_STR);
   $stmt->execute() ||fail('MySQL execute', $db->error);
   return false;
   }
 }
 
-function create_team($name, $pass)
+function create_team($name, $pass, $db)
 {
-  global $db_host, $db_std_user, $db_std_pass, $db_name, $db_port;
-
-  $db= new mysqli($db_host, $db_std_user, $db_std_pass, $db_name, $db_port);
-  if (mysqli_connect_errno())
-    fail('MySQL connect', mysqli_connect_error());
-  ($stmt = $db->prepare('INSERT INTO user (name, pass) VALUES (?,?)')) || fail('MySQL prepare, $db->error);
-  $stmt->bind_param('ss',$name,$pass) || fail('MySQL bind_param', $db->error);
+  ($stmt = $db->prepare('INSERT INTO user (name, pass) VALUES (?,?)')) || fail('MySQL prepare', $db->error);
+  $stmt->bindParam(1,$name, PDO::PARAM_STR);
+  $stmt->bindParam(2, $pass, PDO::PARAM_STR);
   $stmt->execute() || fail('MySQL execute', $db->error);
-  $stmt->close();
-  $db->close();
+
 }
 
+function get_tokens($type = '*', $db)
+{
+  $stmt = $db-prepare('SELECT hash, value, host FROM token WHERE type = ?');
+  $stmt-> bindParam(1, $type, PDO::PARAM_STR);
+  $stmt-> execute();
+  return $stmt();
+}
+
+function get_capture_tokens()
+{
+  return get_tokens('c');
+}

@@ -1,11 +1,13 @@
 <?php
 include_once('./functions.php');
 start_session('_s', true);
+$db = start_db();
+
 if (isset($_POST['op']))
 {
   if ($_POST['op'] === 'logout')
   {
-    if (!login_check())
+    if (!login_check($db))
       echo "ERROR allready logged out<br>/n";
     else
     {
@@ -24,17 +26,17 @@ if (isset($_POST['op']))
   }
   else if ($_POST['op'] === 'login')
   {
-    $user = get_post_var('user');
+    $user = $_POST['user'];
     // users cant be trusted so sanity check the input before proceding
     if (!preg_match('/^[a-zA-Z0-9_]{1,60}$/', $user))
       fail('Invalid username');
 
-    $pass = get_post_var('pass');
+    $pass = $_POST['pass'];
     // users cant be trusted so check length of the password
     // our hashing algorithum only uses the first 72 chars anyway
     if (strlen($pass) > 72)
       fail('The supplied password is too long');
-    if(login( $user, $pass))
+    if(login( $user, $pass,$db))
       header('Location: ./index.php');
     else
       fail('Login unsuccessfull');

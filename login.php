@@ -1,13 +1,14 @@
 <?php
 include_once('./functions.php');
 start_session('_s', true);
+$db = start_db();
 ?>
 
 <html>
 <?php include_once('./head.html'); ?>
 <body>
   <?php include_once('./navBar.php'); ?>
-  <?php if (login_check()) : ?>
+  <?php if (login_check($db)) : ?>
   <form action="processLogin.php" method="POST">
   <input type="hidden" name="op" value="logout">
   <input type="submit" value="logout">

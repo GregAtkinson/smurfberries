@@ -1,11 +1,16 @@
 <?php
 include_once('./functions.php');
 start_session('_s', true);
+
+//check if user is allowed to see use this page
 if (!(login_check() && admin_check()))
 {
 header('Location: ./index.php');
 die();
 }
+
+//start db
+$db = start_db();
 ?>
 you are allowed to see this page //TODO remove line after testing
 <div>
@@ -39,5 +44,8 @@ you are allowed to see this page //TODO remove line after testing
     echo "  <input type='image' src='images/update.png' alt='Update Row' title='Update Row'>\n";
     echo "<a href='delete.php?token=".$row['token']."><image title='Delete Row' alt='Delete' src='images/delete.png'/></a></form>\n";
   }
-
+?>
+</div>
+</body>
+</html>
 

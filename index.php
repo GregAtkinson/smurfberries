@@ -2,6 +2,8 @@
 require_once('./functions.php');
 
 start_session('_s', true);
+$db = start_db();
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -40,3 +42,5 @@ foreach ($summary['retrieve_tokens'] as $row)
 in order to deny your opposition retrival points you need to either DOS their services or replace thier tokens with your team token to gain their retrival points for yourself <br>
 your team token is <b> <?php echo $summary['team_token']; ?>
 </body>
+</html>
+<?php $stop_db($db); ?>
