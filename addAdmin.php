@@ -1,7 +1,7 @@
 <?php if (isset($_POST['pass1'])): ?>
 <?php
 require('./PasswordHash.php');
-include('./papaSmurf.conf.php');
+include('./smurfberries.conf');
 if ($_POST['pass1'] == $_POST['pass2'])
 {
   $uname = $_POST['uname'];

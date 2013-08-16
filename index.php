@@ -1,9 +1,7 @@
 <?php
 require_once('./functions.php');
-
-start_session('_s', true);
+start_session($session_name, true);
 $db = start_db();
-
 ?>
 <!DOCTYPE html>
 <html>

@@ -1,6 +1,6 @@
-<div name="navigation">
+<div class = "navbar" name="navigation">
 <?php
-  $logged_in = login_check();
+  $logged_in = login_check($db);
   if ($logged_in)
     $name = $_SESSION['teamname'];
   else
@@ -15,6 +15,6 @@
   <?php else: ?>
   <li><a href="./login.php">Logoff</a></li>
   <?php endif; ?>
-  <ul>
+  </ul>
 </div>
 

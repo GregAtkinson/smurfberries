@@ -5,7 +5,7 @@ $hash = $hasher->HashPassword('Boobies');
 
 $name = 'team1';
 
-include('papaSmurf.conf.php');
+include('smurfberries.conf');
 
 $db= new mysqli($db_host, $db_std_user, $db_std_pass, $db_name, $db_port);
 if (mysqli_connect_errno())

@@ -1,6 +1,6 @@
 <?php
-include_once('./functions.php');
-start_session('_s', true);
+require_once('./functions.php');
+start_session($session_name, true);
 $db = start_db();
 ?>
 

@@ -1,5 +1,5 @@
 <?php
-include('./papaSmurf.conf.php');
+include('./smurfberries.conf');
 
 function fail($pub, $pvt = '')
 {
@@ -52,6 +52,10 @@ $table_stmts['token'] =
   id INT NOT NULL AUTO_INCREMENT,
   hash CHAR(40) NOT NULL,
   value INT NOT NULL,
+  host VARCHAR(30),
+  service VARCHAR(30),
+  uname VARCHAR(30),
+  pass VARCHAR(30),
   type CHAR(1) NOT NULL,
   PRIMARY KEY(id)
 )';

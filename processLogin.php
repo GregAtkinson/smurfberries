@@ -1,6 +1,6 @@
 <?php
-include_once('./functions.php');
-start_session('_s', true);
+require_once('./functions.php');
+start_session($session_name, true);
 $db = start_db();
 
 if (isset($_POST['op']))
@@ -19,7 +19,7 @@ if (isset($_POST['op']))
       //delete actual cookie
       setcookie(session_name(), '', time() - 42000, $params["path"], $params["domain"], $params["secure"], $params["httponly"]);
       //close session NOTE session is destroyed in the close session function
-      close_session($sid);
+      close_session($sid, $db);
       //redirect to homepage
       header('Location: ./index.php');
     }

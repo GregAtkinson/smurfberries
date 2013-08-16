@@ -10,7 +10,6 @@ function start_db()
   {
     $dbh = new PDO("mysql:host=$db_host;dbname=$db_name", $db_std_user, $db_std_pass);
     if ($debug)
-      echo "connected to database";
     return $dbh;
 
   }
@@ -126,13 +125,16 @@ function login_check($db)
 
 function admin_check($db)
 {
-  ($stmt = $db->prepare('SELECT isadmin FROM user WHERE id = ?')) || fail('MySQL prepare', $db->error);
-  $stmt->bindParam(1, $user_id, PDO::PARAM_STR) || fail('MySQL bindParam', $db->error);
-  $stmt->execute() || fail('MySQL execute', $db->error);
-  $isadmin = $stmt->fetch(PDO::FETCH_ASSOC);
+  $user_id = $_SESSION['user_id'];
 
+  $stmt = $db->prepare('SELECT isadmin FROM user WHERE id = ?');
+  $stmt->bindParam(1, $user_id, PDO::PARAM_STR);
+  $stmt->execute();
+  $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-  if ($isadmin == true)
+  $isadmin = $row['isadmin'];
+
+  if ($isadmin == 1)
     return true;
   else
     return false;
@@ -200,22 +202,48 @@ function login($user, $pass, $db)
 
 function create_team($name, $pass, $db)
 {
-  ($stmt = $db->prepare('INSERT INTO user (name, pass) VALUES (?,?)')) || fail('MySQL prepare', $db->error);
+  $stmt = $db->prepare('INSERT INTO user (name, pass) VALUES (?,?)');
   $stmt->bindParam(1,$name, PDO::PARAM_STR);
   $stmt->bindParam(2, $pass, PDO::PARAM_STR);
-  $stmt->execute() || fail('MySQL execute', $db->error);
+  $stmt->execute();
 
 }
 
-function get_tokens($type = '*', $db)
+
+/*
+ * This function returns the PDO stmt conntating the requested type of token
+ * The calling function will need to iterate using fetch commands to extract "THE DATA"
+ */
+function get_tokens($db, $type = '*')
 {
-  $stmt = $db-prepare('SELECT hash, value, host FROM token WHERE type = ?');
+  $stmt = $db->prepare('SELECT id, hash, value, host, service, uname, pass FROM token WHERE type = ?');
   $stmt-> bindParam(1, $type, PDO::PARAM_STR);
   $stmt-> execute();
-  return $stmt();
+  return $stmt;
 }
 
-function get_capture_tokens()
+function get_capture_tokens($db)
 {
-  return get_tokens('c');
+  return get_tokens($db, 'c');
+}
+
+function get_retrieve_tokens($db)
+{
+  return get_tokens($db, 'r');
+}
+
+function generate_token()
+{
+  global $hash_cost_log2, $hash_portable,$token_length;
+  $alpha = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  $token = '';
+
+  $hasher = new PasswordHash($hash_cost_log2, $hash_portable);
+  $rand = $hasher->get_random_bytes(30);
+  for ($i= 0; $i<$token_length; $i++)
+  {
+    $value = ord($rand[$i]); // this selects the next number from the random bytes
+    $token .=  $alpha [$value & 0x3f]; //this makes sure that the $value is not ouside the range of alpha (0x3f is the length of the alpha array) and selects the character
+  }
+  return $token;
 }

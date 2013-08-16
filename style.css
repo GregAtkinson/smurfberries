@@ -11,7 +11,7 @@ li
   float:right;
 }
 
-a:link,a:visited
+.navbar a:link,.navbar a:visited
 {
   display:block;
   width:120px;
@@ -23,7 +23,23 @@ a:link,a:visited
   text-decoration:none;
   text-transform:uppercase;
 }
-a:hover,a:active
+.navbar a:hover,.navbar a:active
 {
   background-color:#0000FF;
+}
+
+
+table
+{
+  border-collapse:collapse;
+}
+
+table, th, td 
+{
+  border:1px solid;
+}
+
+.tokenTable th:nth-child(2), .tokenTable td:nth-child(2)
+{
+  display:none;
 }

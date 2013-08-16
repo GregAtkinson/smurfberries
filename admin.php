@@ -1,18 +1,21 @@
 <?php
 include_once('./functions.php');
-start_session('_s', true);
+start_session($session_name, true);
+$db = start_db();
 
 //check if user is allowed to see use this page
-if (!(login_check() && admin_check()))
+if (!(login_check($db) && admin_check($db)))
 {
-header('Location: ./index.php');
-die();
+  header('Location: ./index.php');
+  die();
 }
 
-//start db
-$db = start_db();
 ?>
-you are allowed to see this page //TODO remove line after testing
+
+<?php include_once('./head.html'); ?>
+<body>
+<?php include_once('./navBar.php'); ?>
+
 <div>
   <h2> Add Team </h2>
   <form action = processAdmin.php>
@@ -26,26 +29,65 @@ you are allowed to see this page //TODO remove line after testing
 
 <div>
   <h2> Capture tokens </h2>
+  <table class="tokenTable">
+  <tr>
+  <th>&nbsp;Action</th>
+  <th>&nbsp;ID</th>
+  <th>&nbsp;Token</th>
+  <th>&nbsp;Points</th>
+  <th>&nbsp;Host</th>
+  <?php
+  $tokens = get_capture_tokens($db);
+  while($row = $tokens->fetch(PDO::FETCH_ASSOC))
+  {
+    echo "<tr>\n";
+    echo "<td> <a href='editToken.php?id=".$row['id']."'> <img src='images/edit_btn.png' height='15' width='16' border='0' alt='edit' title='Edit'/></a>&nbsp;<a href='deleteToken.png?id=".$row['id']."'><img src='images/delete_btn.png' height='15' width='16' border='0' alt='delete' title='Delete'/></a></td>\n";
+    echo "<td>".$row['id']."</td>\n";
+    echo "<td>".$row['hash']."</td>\n";
+    echo "<td>".$row['value']."</td>\n";
+    echo "<td>".$row['host']."</td>\n";
+    echo "</tr>\n";
+  }
+  ?>
+  </table>
+  <form action="addToken.php" method="GET">
+    <input type="hidden" name="type" value="c">
+    <input type="submit" value="add">
+  </form>
+</div>
+<div>
+  <h2> Retrieve tokens </h2>
   <table>
   <tr>
-  <td>&nbsp;Token</td>
-  <td?&nbsp;Points</td>
-  <td>&nbsp;Host</td>
-  <tr>
-  </table>
+  <th>&nbsp;Action</th>
+  <th>&nbsp;Token</th>
+  <th>&nbsp;Points</th>
+  <th>&nbsp;Host</th>
+  <th>&nbsp;service</th>
+  <th>&nbsp;user</th>
+  <th>&nbsp;password</th>
   <?php
-  $tokens = get_capture_tokens();
-  foreach($token as $row)
+  $tokens = get_retrieve_tokens($db);
+  while($row = $tokens->fetch(PDO::FETCH_ASSOC))
   {
-    echo "<form method='GET' action='update.php'\n";
-    echo "  <input type='text' value=".$row['token']." name='token'>\n";
-    echo "  <input type='text' value=".$row['points']." name='points'>\n";
-    echo "  <input type='text' value=".$row['host']." name='host'>\n";
-    echo "  <input type='image' src='images/update.png' alt='Update Row' title='Update Row'>\n";
-    echo "<a href='delete.php?token=".$row['token']."><image title='Delete Row' alt='Delete' src='images/delete.png'/></a></form>\n";
+    echo "<tr>\n";
+    echo "<td> <a href='editToken.php?id=".$row['id']."'> <img src='images/edit_btn.png' height='15' width='16' border='0' alt='edit' title='Edit'/></a>&nbsp;<a href='deleteToken?id=".$row['id']."'><img src='images/delete_btn.png' height='15' width='16' border='0' alt='delete' title='Delete'/></a></td>\n";
+    echo "<td>".$row['hash']."</td>\n";
+    echo "<td>".$row['value']."</td>\n";
+    echo "<td>".$row['host']."</td>\n";
+    echo "<td>".$row['service']."</td>\n";
+    echo "<td>".$row['uname']."</td>\n";
+    echo "<td>".$row['pass']."</td>\n";
+    echo "</tr>\n";
   }
-?>
-</div>
+  ?>
+  </table>
+  <form action="addToken.php" method="GET">
+    <input type="hidden" name="type" value="r">
+    <input type="submit" value="add">
+  </form>
+
+
 </body>
 </html>
 

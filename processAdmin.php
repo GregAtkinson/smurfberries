@@ -1,6 +1,8 @@
 <?php
-include_once('./functions.php');
-start_session('_s', true);
+require_once('./functions.php');
+start_session($session_name, true);
+$db = start_db();
+
 if (!(login_check() && admin_check()))
 {
   header('Location: ./index.php');
@@ -14,6 +16,6 @@ switch($_POST['op'])
 case "addTeam":
   $name = $_POST['name'];
   $pass = $_POST['pass'];
-  create_team($name, $pass);
+  create_team($name, $pass, $db);
 }
 
