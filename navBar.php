@@ -1,4 +1,6 @@
 <div class = "navbar" name="navigation">
+<div id="titlebar"> <img src='images/smurfberries.png'></img></div>
+
 <?php
   $logged_in = login_check($db);
   if ($logged_in)
