@@ -1,0 +1,18 @@
+php will automatticly end sessions after a timeout period however we want to 
+end sessions after a logout or a user deletion.
+
+we also want to keep our data sets small and simple where possible.
+
+There is a neeed to periodically clean out the sql database of data that was 
+generated but no longer has any relivance.
+
+The data of concern is in the session and login attempt tables.
+
+we want to delete all records relating to a user_id when a user is deleted.
+This is achived using mysql instead of php. any tables that store user spacific 
+information that should be deleted with the user are linked using FOREIGN KEY 
+and ON CASCADE DELETE options.
+
+finally we want to delete data from the database that is only relivant for a 
+time period that has expired this is achived by using the garbageCollector 
+function which is called by the db start function (which is called by every page).  

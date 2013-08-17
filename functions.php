@@ -9,9 +9,8 @@ function start_db()
   try
   {
     $dbh = new PDO("mysql:host=$db_host;dbname=$db_name", $db_std_user, $db_std_pass);
-    if ($debug)
+    garbageCollector($dbh);
     return $dbh;
-
   }
   catch(PDOException $e)
   {
@@ -19,24 +18,6 @@ function start_db()
       $e->getMessage();
   }
 }
-
-
-/*
- * this is not required it will close at the end of the php script
-function stop_db($db)
-{
-  try
-  {
-    $db = null;
-  }
-  catch(PDOException $e)
-  {
-    if ($debug)
-      $e->getMessage();
-  }
-
-}
- */
 
 function fail($pub, $pvt = '')
 {
@@ -84,10 +65,32 @@ function start_session($session_name, $secure)
 
 function close_session($sid, $db)
 {
-  ($stmt = $db->prepare('DELETE FROM session WHERE sid = ?')) || fail('MySQL prepare', $db->error);
-  $stmt->bindParam(1,$sid,PDO::PARAM_STR);
-  $stmt->execute();
+  $stmt = $db->prepare('DELETE FROM session WHERE sid = ?');
+  $stmt->execute(array($sid));
   session_destroy();
+}
+
+/*
+ * This function checks the session, loginAttempts and user tables and removes
+ * artifacts that should no longer be there. This function works on timestamps
+ * so should be called on a regular bases
+ */
+
+function garbageCollector($db)
+{
+  global $loginAttemptWindow, $sessionTimeout;
+
+  $now = time();
+
+  //remove anything from the loginAttempt table that is older than the login window.
+  $window = $now - $loginAttemptWindow;
+  $stmt = $db->prepare('DELETE FROM loginAttempt WHERE time < ?');
+  $stmt->execute(array($window));
+
+  //delete any sessions where last activity > session timeout
+  $window = $now - $sessionTimeout;
+  $stmt = $db->prepare('DELETE FROM session WHERE lastActicvity < ?');
+  $stmt->execute(array($window));
 }
 
 function login_check($db)
@@ -106,8 +109,7 @@ function login_check($db)
 
   //db data
   $stmt = $db->prepare('SELECT sid, ip, userAgent FROM session WHERE user_id = ?');
-  $stmt->bindParam(1, $user_id, PDO::PARAM_STR);
-  $stmt->execute();
+  $stmt->execute(array($user_id));
   //we allow more than one session per user so we need to loop through the resu$
   while($row = $stmt->fetch(PDO::FETCH_ASSOC))
   {
@@ -128,8 +130,7 @@ function admin_check($db)
   $user_id = $_SESSION['user_id'];
 
   $stmt = $db->prepare('SELECT isadmin FROM user WHERE id = ?');
-  $stmt->bindParam(1, $user_id, PDO::PARAM_STR);
-  $stmt->execute();
+  $stmt->execute(array($user));
   $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
   $isadmin = $row['isadmin'];
@@ -147,19 +148,16 @@ function login($user, $pass, $db)
   $hasher = new PasswordHash($hash_cost_log2, $hash_portable);
   $hash = '*';
   $stmt = $db->prepare('SELECT id, pass FROM user WHERE name = ?');
-  $stmt->bindParam(1,$user, PDO::PARAM_STR) || fail('MySQL bindParam', $db->error);
-  $stmt->execute() || fail('MySQL execute', $db->error);
+  $stmt->execute(array($user));
   $row= $stmt->fetch(PDO::FETCH_ASSOC);
   $user_id = $row['id'];
   $hash = $row['pass'];
 
   //check for brute force attempt
   $now = time();
-  $past = $now - 7200; //2 hours ago
-  ($stmt= $db->prepare('SELECT COUNT(time) AS numAttempts FROM loginAttempt WHERE user_id = ? AND time > ?')) || fail('MySQL prepare', $db->error);
-  $stmt->bindParam(1, $user_id, PDO::PARAM_INT);
-  $stmt->bindParam(2, $past, PDO::PARAM_STR);
-  $stmt->execute();
+  $past = $now - $loginAttemptWindow;
+  $db->prepare('SELECT COUNT(time) AS numAttempts FROM loginAttempt WHERE user_id = ? AND time > ?');
+  $stmt->execute($array($user_id, $past));
   $row = $stmt->fetch(PDO::FETCH_ASSOC);
   $numAttempts= $row['numAttempts'];
 
@@ -174,13 +172,8 @@ function login($user, $pass, $db)
     $user_agent_hash = md5($userAgent);
     $ip = $_SERVER['REMOTE_ADDR'];
     //store details in database so they can be validated later.
-    ($stmt = $db->prepare('INSERT INTO session (sid, user_id, userAgent, ip) VALUES (?,?,?,?)')) || fail ('MySQL prepare', $db->error);
-    $stmt->bindParam(1, $sid, PDO::PARAM_STR);
-    $stmt->bindParam(2, $user_id, PDO::PARAM_INT);
-    $stmt->bindParam(3, $user_agent_hash, PDO::PARAM_STR);
-    $stmt->bindParam(4, $ip, PDO::PARAM_STR);
-    $stmt->execute() || fail('MySQL execute', $db->error);
-
+    $stmt = $db->prepare('INSERT INTO session (sid, user_id, userAgent, ip) VALUES (?,?,?,?)');
+    $stmt->execute(array($sid, $user_id, $user_agent_hash, $id));
 
     //set session vars
     $_SESSION['logged_in'] = true;
@@ -192,10 +185,8 @@ function login($user, $pass, $db)
   else
   {
   //INCORRECT Password log attempt in database
-  ($stmt = $db->prepare('INSERT INTO loginAttempt (user_id,time) VALUES (?,?)')) || fail ('MySQL prepare', $db->error);
-  $stmt->bindParam(1, $user_id, PDO::PARAM_INT);
-  $stmt->bindParam(2, $now, PDO::PARAM_STR);
-  $stmt->execute() ||fail('MySQL execute', $db->error);
+  $stmt = $db->prepare('INSERT INTO loginAttempt (user_id,time) VALUES (?,?)');
+  $stmt->execute(array($user_id, $now));
   return false;
   }
 }
@@ -203,10 +194,7 @@ function login($user, $pass, $db)
 function create_team($name, $pass, $db)
 {
   $stmt = $db->prepare('INSERT INTO user (name, pass) VALUES (?,?)');
-  $stmt->bindParam(1,$name, PDO::PARAM_STR);
-  $stmt->bindParam(2, $pass, PDO::PARAM_STR);
-  $stmt->execute();
-
+  $stmt->execute(array($name, $pass));
 }
 
 
@@ -217,8 +205,7 @@ function create_team($name, $pass, $db)
 function get_tokens($db, $type = '*')
 {
   $stmt = $db->prepare('SELECT id, hash, value, host, service, uname, pass FROM token WHERE type = ?');
-  $stmt-> bindParam(1, $type, PDO::PARAM_STR);
-  $stmt-> execute();
+  $stmt-> execute(array($type));
   return $stmt;
 }
 

@@ -1,0 +1,15 @@
+Smurfberries aims to develop a php based framework for building "cyber"
+capture the flag games.
+
+Q: why is it called smurfberries?
+A: I'm not normally very creative and when coding if I dont have a theme to work with 
+   everything tends to get called boobies which is fine for my own code but not for 
+   something I intend to share.
+
+Smurfberries is intended to be interacted with by people who know how to "hack" and
+is open source. As such it needs to have well written, well maintained, well documented
+and security focused code.
+
+Smurfberries is written for using on php5.3+ and utilizes a mysql backend.
+
+additional Documentation will be available in the doc folder.

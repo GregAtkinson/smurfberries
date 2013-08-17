@@ -63,9 +63,12 @@ $table_stmts['token'] =
 $table_stmts['capture'] =
 'CREATE TABLE capture
 (
-  time VARCHAR(30) NOT NULL,
-  team_id INT NOT NULL,
-  token_id INT NOT NULL
+  id INT NOT NULL AUTO_INCREMENT,
+  time INT NOT NULL,
+  user_id INT NOT NULL,
+  token_id INT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES user ON DELETE CASCADE,
+  PRIMARY KEY(id)
 )';
 
 $table_stmts['loginAttempt'] =
@@ -73,7 +76,8 @@ $table_stmts['loginAttempt'] =
 (
   id INT NOT NULL AUTO_INCREMENT,
   user_id INT NOT NULL,
-  time VARCHAR(30) NOT NULL,
+  time INT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES user ON DELETE CASCADE,
   PRIMARY KEY(id)
 )';
 
@@ -84,7 +88,9 @@ $table_stmts['session'] =
   user_id INT NOT NULL,
   ip VARCHAR(20) NOT NULL,
   userAgent VARCHAR(40),
+  lastActivity VARCHAR(30) NOT NULL,
   UNIQUE(sid),
+  FOREIGN KEY (user_id) REFERENCES user ON DELETE CASCADE,
   PRIMARY KEY(sid)
 )';
 
