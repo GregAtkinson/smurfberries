@@ -6,6 +6,7 @@ $db = start_db();
 <?php include_once('./head.html'); ?>
 <body>
 <?php include_once('./navBar.php'); ?>
+<div>
 <h2> score summary: </h2>
 <?php $summary = get_summary($_SESSION['user_id'], $db); ?>
 your current score is: <?php echo $summary['total_score']; ?> <br>
@@ -37,5 +38,6 @@ foreach ($summary['retrieve_tokens'] as $row)
 
 in order to deny your opposition retrival points you need to either DOS their services or replace thier tokens with your team token to gain their retrival points for yourself <br>
 your team token is <b> <?php echo $summary['team_token']; ?>
+</div>
 </body>
 </html>

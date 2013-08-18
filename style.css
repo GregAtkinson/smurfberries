@@ -1,28 +1,34 @@
+#titlebar
+{
+  width: 100%;
+}
+
 #titlebar img
 {
   pointer-events: none;
-  position: absolute;
-  top: 0px;
   width: 100%
 }
 
 #navbar
 {
-  margin-top:130px;
+  margin-top: -8%;
+  margin-bottom: 8%;
 }
 
 #navbar span
 {
   float: left;
-  width: 30%;
+  width: 20%;
+  padding: 5px;
   background-color: green;
 }
 
-#navbar #navLinks
+#navbar ul
 {
   float: right;
-  width: 60%;
-  margin-right: 10%;
+  width: 82%;
+  margin: 0 12% 0 0;
+  list-style: none;
   background-color: yellow;
 }
 
