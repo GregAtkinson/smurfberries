@@ -1,39 +1,44 @@
 #titlebar img
 {
-width: 100%
+  pointer-events: none;
+  position: absolute;
+  top: 0px;
+  width: 100%
 }
 
-
-ul
+#navbar
 {
-  list-style-type:none;
-  margin:0;
-  padding:0;
-  overflow:hidden;
+  margin-top:130px;
 }
 
-li
+#navbar span
 {
-  float:right;
+  float: left;
+  width: 30%;
+  background-color: green;
 }
 
-.navbar a:link,.navbar a:visited
+#navbar #navLinks
 {
-  display:block;
-  width:120px;
-  font-weight:bold;
-  color:#FFFFFF;
+  float: right;
+  width: 60%;
+  margin-right: 10%;
+  background-color: yellow;
+}
+
+a:link, a:visited
+{
+  display: block;
+  width: 150px;
+  font-weight: bold;
+  color: #FFFFFF;
   background-color: #00FFFF;
-  text-align:center;
-  padding:4px;
-  text-decoration:none;
-  text-transform:uppercase;
+  text-align: center;
+  padding: 5px;
+  text-decoration: none;
+  text-transform: uppercase;
+  float: right;
 }
-.navbar a:hover,.navbar a:active
-{
-  background-color:#0000FF;
-}
-
 
 table
 {

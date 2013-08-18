@@ -3,13 +3,11 @@ require_once('./functions.php');
 start_session($session_name, true);
 $db = start_db();
 ?>
-<!DOCTYPE html>
-<html>
 <?php include_once('./head.html'); ?>
 <body>
 <?php include_once('./navBar.php'); ?>
 <h2> score summary: </h2>
-<?php $summary = get_summary(); ?>
+<?php $summary = get_summary($_SESSION['user_id'], $db); ?>
 your current score is: <?php echo $summary['total_score']; ?> <br>
 it has been <?php echo $summary['last_score']; ?> since your last capture <br>
 
@@ -41,4 +39,3 @@ in order to deny your opposition retrival points you need to either DOS their se
 your team token is <b> <?php echo $summary['team_token']; ?>
 </body>
 </html>
-<?php $stop_db($db); ?>

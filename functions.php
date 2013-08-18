@@ -130,7 +130,7 @@ function admin_check($db)
   $user_id = $_SESSION['user_id'];
 
   $stmt = $db->prepare('SELECT isadmin FROM user WHERE id = ?');
-  $stmt->execute(array($user));
+  $stmt->execute(array($user_id));
   $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
   $isadmin = $row['isadmin'];
@@ -143,7 +143,7 @@ function admin_check($db)
 
 function login($user, $pass, $db)
 {
-  global $hash_cost_log2, $hash_portable, $maxLoginAttempts;
+  global $hash_cost_log2, $hash_portable, $maxLoginAttempts, $loginAttemptWindow;
 
   $hasher = new PasswordHash($hash_cost_log2, $hash_portable);
   $hash = '*';
@@ -156,8 +156,8 @@ function login($user, $pass, $db)
   //check for brute force attempt
   $now = time();
   $past = $now - $loginAttemptWindow;
-  $db->prepare('SELECT COUNT(time) AS numAttempts FROM loginAttempt WHERE user_id = ? AND time > ?');
-  $stmt->execute($array($user_id, $past));
+  $stmt = $db->prepare('SELECT COUNT(time) AS numAttempts FROM loginAttempt WHERE user_id = ? AND time > ?');
+  $stmt->execute(array($user_id, $past));
   $row = $stmt->fetch(PDO::FETCH_ASSOC);
   $numAttempts= $row['numAttempts'];
 
@@ -173,7 +173,7 @@ function login($user, $pass, $db)
     $ip = $_SERVER['REMOTE_ADDR'];
     //store details in database so they can be validated later.
     $stmt = $db->prepare('INSERT INTO session (sid, user_id, userAgent, ip) VALUES (?,?,?,?)');
-    $stmt->execute(array($sid, $user_id, $user_agent_hash, $id));
+    $stmt->execute(array($sid, $user_id, $user_agent_hash, $ip));
 
     //set session vars
     $_SESSION['logged_in'] = true;
@@ -193,30 +193,106 @@ function login($user, $pass, $db)
 
 function create_team($name, $pass, $db)
 {
-  $stmt = $db->prepare('INSERT INTO user (name, pass) VALUES (?,?)');
-  $stmt->execute(array($name, $pass));
+  global $hash_cost_log2, $hash_portable;
+
+  $hasher = new PasswordHash($hash_cost_log2, $hash_portable);
+  $hash = $hasher->hashPassword($pass);
+
+  $teamToken = generate_token();
+  $stmt = $db->prepare('INSERT INTO user (name, pass, teamToken) VALUES (?,?,?)');
+  $stmt->execute(array($name, $hash, $teamToken));
 }
 
+/*
+ * This function returns the PDO stmt conntating the invite token
+ * The calling function will need to iterate using fetch commands to extract "THE DATA"
+ */
+function get_invites($db)
+{
+  $stmt = $db->prepare('SELECT id, token, expire FROM invite');
+  $stmt->execute();
+  return $stmt;
+}
+
+function generateInvite($db)
+{
+  global $hash_cost_log2, $hash_portable, $invite_length, $invite_timeout;
+
+  $hasher = new PasswordHash($hash_cost_log2, $hash_portable);
+  $rand = $hasher->get_random_bytes(30);
+
+  $alpha = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  $token = '';
+  for ($i=0; $i<$invite_length; $i++)
+  {
+    $value = ord($rand[$i]); // this selects the next number from the random bytes
+    $token .=  $alpha [$value & 0x3f]; //this makes sure that the $value is not ouside the range of alpha (0x3f is the length of the alpha array) and selects the character
+  }
+
+  $expire = time() + $invite_timeout;
+  $stmt = $db->prepare('INSERT INTO invite (token, expire) VALUES (?,?)');
+  $stmt->execute(array($token, $expire));
+}
+
+function deleteInvite($id, $db)
+{
+  $stmt = $db->prepare('DELETE FROM invite WHERE id = ?');
+  $stmt->execute(array($id));
+}
+
+function expireInvite($id, $db)
+{
+  $now = time();
+  $stmt = $db->prepare('UPDATE invite SET expire=? WHERE id = ?');
+  $stmt->execute(array($now, $id));
+}
 
 /*
  * This function returns the PDO stmt conntating the requested type of token
  * The calling function will need to iterate using fetch commands to extract "THE DATA"
  */
-function get_tokens($db, $type = '*')
+function get_tokens($db, $type = '', $user_id='')
 {
-  $stmt = $db->prepare('SELECT id, hash, value, host, service, uname, pass FROM token WHERE type = ?');
-  $stmt-> execute(array($type));
-  return $stmt;
+  if ($type != '')
+  {
+    if ($user_id != '')
+    {
+      $stmt = $db->prepare('SELECT id, hash, value, host, service, uname, pass FROM token WHERE type = ? AND user_id = ?');
+      $stmt->execute(array($type, $user_id));
+      return $stmt;
+    }
+    else
+    {
+      $stmt = $db->prepare('SELECT id, hash, value, host, service, uname, pass FROM token WHERE type = ?');
+      $stmt-> execute(array($type));
+      return $stmt;
+    }
+  }
+  else
+  {
+    if ($user_id != '')
+    {
+      $stmt = $db->prepare('SELECT id, hash, value, host, service, uname, pass FROM token WHERE user_id = ?');
+      $stmt->execute(array($user_id));
+      return $stmt;
+    }
+    else
+    {
+      $stmt = $db->prepare('SELECT id, hash, value, host, service, uname, pass FROM token');
+      $stmt->execute();
+      return $stmt;
+    }
+  }
 }
 
 function get_capture_tokens($db)
 {
-  return get_tokens($db, 'c');
+  return get_tokens($db, 'c', '');
 }
 
-function get_retrieve_tokens($db)
+function get_retrieve_tokens($db, $user_id='')
 {
-  return get_tokens($db, 'r');
+  return get_tokens($db, 'r', $user_id);
 }
 
 function generate_token()
@@ -233,4 +309,30 @@ function generate_token()
     $token .=  $alpha [$value & 0x3f]; //this makes sure that the $value is not ouside the range of alpha (0x3f is the length of the alpha array) and selects the character
   }
   return $token;
+}
+
+function get_summary($user_id, $db)
+{
+  //get score data
+  $captures = $db->prepare('SELECT token.value FROM capture, token WHERE used_id = ? AND capture.token_id = token.id');
+  $captures->execute(array($user_id));
+
+  //calculate score
+  $totalScore = 0;
+  while($row = $captures->fetch(PDO::FETCH_ASSOC))
+  {
+    $totalScore += $row['value'];
+  }
+
+  //get time since last_score AND team_token
+  $stmt = $db->prepare('SELECT lastCapture, teamToken FROM user WHERE id = ?');
+  $stmt->execute(array($user_id));
+  $row = $stmt->fetch(PDO::FETCH_ASSOC);
+  $lastCapture = $row['lastCapture'];
+  $teamToken = $row['teamToken'];
+
+  //get retrieve tokens assigned to this user
+  $tokens = get_retrieve_tokens($db, $user_id);
+
+  return array("total_score"=>$totalScore, "last_score" => $lastCapture, "retrieve_tokens" => $tokens, "team_token"=> $teamToken);
 }

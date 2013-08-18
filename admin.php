@@ -15,16 +15,38 @@ if (!(login_check($db) && admin_check($db)))
 <?php include_once('./head.html'); ?>
 <body>
 <?php include_once('./navBar.php'); ?>
-
+test
 <div>
-  <h2> Add Team </h2>
-  <form action = processAdmin.php>
-  <input type='hidden' name='op' value='addTeam'>
-  teamname: <input type='text' name='user' size='40'><br>
-  password: <input type='text' name='pass' size='40'><br> //TODO find a beter process for this currently the use case is team submits name:pass to admin how creates acccount better would be admin subits one time token to each team which allows the registration of a new user via webform.
-  <input type='submit' value='create team'>
+  <h2> Invite Team </h2>
+invites:
+  <table>
+  <tr>
+  <th>action</th>
+  <th>id</th>
+  <th>token</th>
+  <th>expiry</th>
+  <?php
+  $invites = get_invites($db);
+  while($row = $invites->fetch(PDO::FETCH_ASSOC))
+  {
+    $expire = $row['expire'] - time();
+    if ($expire < 0)
+      $expire = "EXPIRED";
+    else
+      $expire .= " Secs";
+    echo "<tr>\n";
+    echo "<td> <a href='editInvite.php?id=".$row['id']."'> <img src='images/edit_btn.png' height='15' width='16' border='0' alt='edit' title='Edit'/></a><a href='deleteInvite.php?id=".$row['id']."'><img src='images/delete_btn.png' height='15' width='16' border='0' alt='delete' title='Delete'/></a></td>\n";
+    echo "<td>".$row['id']."</td>\n";
+    echo "<td>".$row['token']."</td>\n";
+    echo "<td>".$expire."</td>\n";
+    echo "</tr>\n";
+  }
+  ?>
+  </table>
+  <form action="addInvite.php" method="POST">
+    <input type="submit" value="add">
   </form>
-  NOTE: this could be done better admin creates one time token which is passed to team to allow them to create a new team via registration form.
+
 </div>
 
 <div>
@@ -41,7 +63,7 @@ if (!(login_check($db) && admin_check($db)))
   while($row = $tokens->fetch(PDO::FETCH_ASSOC))
   {
     echo "<tr>\n";
-    echo "<td> <a href='editToken.php?id=".$row['id']."'> <img src='images/edit_btn.png' height='15' width='16' border='0' alt='edit' title='Edit'/></a>&nbsp;<a href='deleteToken.png?id=".$row['id']."'><img src='images/delete_btn.png' height='15' width='16' border='0' alt='delete' title='Delete'/></a></td>\n";
+    echo "<td> <a href='editToken.php?id=".$row['id']."'> <img src='images/edit_btn.png' height='15' width='16' border='0' alt='edit' title='Edit'/></a>&nbsp;<a href='deleteToken.php?id=".$row['id']."'><img src='images/delete_btn.png' height='15' width='16' border='0' alt='delete' title='Delete'/></a></td>\n";
     echo "<td>".$row['id']."</td>\n";
     echo "<td>".$row['hash']."</td>\n";
     echo "<td>".$row['value']."</td>\n";
@@ -71,7 +93,7 @@ if (!(login_check($db) && admin_check($db)))
   while($row = $tokens->fetch(PDO::FETCH_ASSOC))
   {
     echo "<tr>\n";
-    echo "<td> <a href='editToken.php?id=".$row['id']."'> <img src='images/edit_btn.png' height='15' width='16' border='0' alt='edit' title='Edit'/></a>&nbsp;<a href='deleteToken?id=".$row['id']."'><img src='images/delete_btn.png' height='15' width='16' border='0' alt='delete' title='Delete'/></a></td>\n";
+    echo "<td> <a href='editToken.php?id=".$row['id']."'> <img src='images/edit_btn.png' height='15' width='16' border='0' alt='edit' title='Edit'/></a>&nbsp;<a href='deleteToken.php?id=".$row['id']."'><img src='images/delete_btn.png' height='15' width='16' border='0' alt='delete' title='Delete'/></a></td>\n";
     echo "<td>".$row['hash']."</td>\n";
     echo "<td>".$row['value']."</td>\n";
     echo "<td>".$row['host']."</td>\n";

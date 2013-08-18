@@ -13,9 +13,11 @@ if(!issset($_POST['op']))
 
 switch($_POST['op'])
 {
-case "addTeam":
-  $name = $_POST['name'];
-  $pass = $_POST['pass'];
-  create_team($name, $pass, $db);
+
+//this is covered in register.php
+//case "addTeam":
+//  $name = $_POST['name'];
+//  $pass = $_POST['pass'];
+//  create_team($name, $pass, $db);
 }
 

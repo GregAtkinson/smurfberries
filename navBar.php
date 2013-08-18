@@ -1,6 +1,3 @@
-<div class = "navbar" name="navigation">
-<div id="titlebar"> <img src='images/smurfberries.png'></img></div>
-
 <?php
   $logged_in = login_check($db);
   if ($logged_in)
@@ -8,15 +5,18 @@
   else
     $name = 'guest';
 ?>
-  <ul>
-  welcome <?php echo $name; ?>
-  <li><a href="#home">Home</a></li>
-  <li><a href="#score">Scoreboard</a></li>
-  <?php if(!$logged_in): ?>
-  <li><a href="./login.php">Login</a></li>
-  <?php else: ?>
-  <li><a href="./login.php">Logoff</a></li>
-  <?php endif; ?>
-  </ul>
+
+<div id="titlebar"> <img src='images/smurfberries.png'/></div>
+<div id="navbar">
+  <span>welcome <?php echo $name; ?></span>
+  <div id="navLinks">
+    <a href="./index.php">Home</a>
+    <a href="#score">Scoreboard</a>
+    <?php if(!$logged_in): ?>
+    <a href="./login.php">Login</a>
+    <?php else: ?>
+    <a href="./login.php">Logoff</a>
+    <?php endif; ?>
+  </div>
 </div>
 

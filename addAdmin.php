@@ -1,7 +1,9 @@
+//TODO this file is not fit to be part of the final release it needs to make use of the functions file.
+
 <?php if (isset($_POST['pass1'])): ?>
 <?php
 require('./PasswordHash.php');
-include('./smurfberries.conf');
+include_once('./smurfberries.conf');
 if ($_POST['pass1'] == $_POST['pass2'])
 {
   $uname = $_POST['uname'];

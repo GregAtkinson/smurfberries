@@ -41,8 +41,18 @@ $table_stmts['user'] =
   name VARCHAR(60) NOT NULL,
   pass VARCHAR(60) NOT NULL,
   isadmin BOOLEAN NOT NULL DEFAULT 0,
-  lastCapture VARCHAR(30),
+  lastCapture INT,
+  teamToken VARCHAR(40) NOT NULL,
   UNIQUE(name),
+  PRIMARY KEY(id)
+)';
+
+$table_stmts['invite'] =
+'CREATE TABLE invite
+(
+  id INT NOT NULL AUTO_INCREMENT,
+  token VARCHAR(15) NOT NULL,
+  expire INT NOT NULL,
   PRIMARY KEY(id)
 )';
 
@@ -56,6 +66,7 @@ $table_stmts['token'] =
   service VARCHAR(30),
   uname VARCHAR(30),
   pass VARCHAR(30),
+  user_id INT,
   type CHAR(1) NOT NULL,
   PRIMARY KEY(id)
 )';
@@ -67,7 +78,7 @@ $table_stmts['capture'] =
   time INT NOT NULL,
   user_id INT NOT NULL,
   token_id INT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES user ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE,
   PRIMARY KEY(id)
 )';
 
@@ -77,7 +88,7 @@ $table_stmts['loginAttempt'] =
   id INT NOT NULL AUTO_INCREMENT,
   user_id INT NOT NULL,
   time INT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES user ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE,
   PRIMARY KEY(id)
 )';
 
@@ -90,7 +101,7 @@ $table_stmts['session'] =
   userAgent VARCHAR(40),
   lastActivity VARCHAR(30) NOT NULL,
   UNIQUE(sid),
-  FOREIGN KEY (user_id) REFERENCES user ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE,
   PRIMARY KEY(sid)
 )';
 

@@ -4,7 +4,6 @@ start_session($session_name, true);
 $db = start_db();
 ?>
 
-<html>
 <?php include_once('./head.html'); ?>
 <body>
   <?php include_once('./navBar.php'); ?>
@@ -20,6 +19,7 @@ $db = start_db();
   password: <input type="password" name="pass" size="50"><br>
   <input type="submit" value="login">
   </form>
+  <p> Dont have a login yet? register <a href="./register.php">here</a>
   <?php endif; ?>
 </body>
 </html>
